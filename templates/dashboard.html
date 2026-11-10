@@ -1,0 +1,324 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Analyzer | Dashboard</title>
+
+    <link rel="stylesheet"
+    href="{{ url_for('static', filename='css/style.css') }}">
+
+    <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+<div class="dashboard-container">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+
+        <div class="logo">
+            <i class="fa-solid fa-file-circle-check"></i>
+            <span>Resume<span class="logo-highlight">Analyzer</span></span>
+        </div>
+
+        <div class="menu-heading">MENU</div>
+
+        <nav class="nav-menu">
+            <a href="#dashboard" class="nav-link active">
+                <i class="fa-solid fa-house"></i>
+                Dashboard
+            </a>
+
+            <a href="#upload" class="nav-link">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                Upload Resume
+            </a>
+
+            <a href="{{ url_for('job_criteria') }}">
+    <i class="fas fa-briefcase"></i>
+    <span>Job Criteria</span>
+</a>
+
+            <a href="#history" class="nav-link">
+                <i class="fa-solid fa-chart-line"></i>
+                Analysis History
+            </a>
+
+            <a href="#courses" class="nav-link">
+                <i class="fa-solid fa-graduation-cap"></i>
+                Recommended Courses
+            </a>
+
+            <a href="#profile" class="nav-link">
+                <i class="fa-solid fa-user"></i>
+                My Profile
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <div class="help-card">
+                <i class="fa-solid fa-circle-question"></i>
+                <h4>Need Help?</h4>
+                <p>Get help with your resume analysis.</p>
+                <a href="#upload">Get Started <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+
+            <a href="#" class="nav-link logout">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                Logout
+            </a>
+        </div>
+
+    </aside>
+
+
+    <!-- Main Content -->
+    <main class="main-content" id="dashboard">
+
+        <!-- Topbar -->
+        <header class="topbar">
+
+            <div>
+                <p class="breadcrumb">Pages / Dashboard</p>
+                <h2>Dashboard</h2>
+            </div>
+
+            <div class="top-actions">
+                <button class="icon-btn" aria-label="Notifications">
+                    <i class="fa-regular fa-bell"></i>
+                    <span class="notification-dot"></span>
+                </button>
+
+                <div class="user-profile" id="profile">
+                    <div class="avatar">U</div>
+                    <div>
+                        <h4>User Profile</h4>
+                        <span>Student</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-down"></i>
+                </div>
+            </div>
+
+        </header>
+
+
+        <!-- Welcome Banner -->
+        <section class="welcome-banner">
+
+            <div class="welcome-content">
+                <span class="welcome-tag">
+                    <i class="fa-solid fa-sparkles"></i>
+                    AI POWERED RESUME ANALYSIS
+                </span>
+
+                <h1>Build a Resume That<br>Gets You <span>Hired!</span></h1>
+
+                <p>
+                    Analyze your resume, discover missing skills and
+                    improve your chances of getting shortlisted.
+                </p>
+
+                <a href="#upload" class="primary-btn">
+                    Analyze My Resume
+                    <i class="fa-solid fa-arrow-right"></i>
+                </a>
+            </div>
+
+            <div class="banner-illustration">
+                <div class="glow-circle"></div>
+                <i class="fa-solid fa-file-invoice"></i>
+                <div class="floating-icon icon-one">
+                    <i class="fa-solid fa-check"></i>
+                </div>
+                <div class="floating-icon icon-two">
+                    <i class="fa-solid fa-chart-pie"></i>
+                </div>
+                <div class="floating-icon icon-three">
+                    <i class="fa-solid fa-star"></i>
+                </div>
+            </div>
+
+        </section>
+
+
+        <!-- Statistics -->
+        <section class="stats-grid">
+
+            <div class="stat-card">
+                <div class="stat-top">
+                    <div class="stat-icon purple">
+                        <i class="fa-solid fa-file-lines"></i>
+                    </div>
+                    <span class="stat-label">Total Resumes</span>
+                </div>
+                <h2>00</h2>
+                <p>Your uploaded resumes</p>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-top">
+                    <div class="stat-icon blue">
+                        <i class="fa-solid fa-bullseye"></i>
+                    </div>
+                    <span class="stat-label">Average ATS Score</span>
+                </div>
+                <h2>00<span>%</span></h2>
+                <p>Your average resume score</p>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-top">
+                    <div class="stat-icon green">
+                        <i class="fa-solid fa-code"></i>
+                    </div>
+                    <span class="stat-label">Skills Identified</span>
+                </div>
+                <h2>00</h2>
+                <p>Skills found in your resumes</p>
+            </div>
+
+        </section>
+
+
+        <!-- Upload Section -->
+        <section class="upload-section" id="upload">
+
+            <div class="section-heading">
+                <div>
+                    <h2>Analyze Your Resume</h2>
+                    <p>Upload your resume to get an AI-powered analysis.</p>
+                </div>
+                <span class="supported-format">PDF / DOCX</span>
+            </div>
+
+            <div class="upload-box">
+
+                <div class="upload-icon">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                </div>
+
+                <h3>Upload Your Resume</h3>
+
+                <p>Choose your resume file to start analyzing</p>
+
+                <label for="resumeFile" class="upload-btn">
+                    <i class="fa-solid fa-folder-open"></i>
+                    Choose Resume
+                </label>
+
+                <input type="file" id="resumeFile"
+                       accept=".pdf,.docx" hidden>
+
+                <p class="file-info" id="fileName">
+                    Maximum file size: 5 MB
+                </p>
+
+                <button class="analyze-btn" id="analyzeBtn" disabled>
+                    Analyze Resume <i class="fa-solid fa-arrow-right"></i>
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- History -->
+        <section class="content-section" id="history">
+
+            <div class="section-heading">
+                <div>
+                    <h2>Recent Analysis</h2>
+                    <p>Track your previous resume analysis.</p>
+                </div>
+                <a href="#history" class="view-all">View All <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+
+            <div class="history-card">
+
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fa-solid fa-folder-open"></i>
+                    </div>
+                    <h3>No Analysis Yet</h3>
+                    <p>Your resume analysis history will appear here.</p>
+                    <a href="#upload">Analyze Your First Resume</a>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- Courses -->
+        <section class="content-section" id="courses">
+
+            <div class="section-heading">
+                <div>
+                    <h2>Recommended Courses</h2>
+                    <p>Improve your skills and strengthen your resume.</p>
+                </div>
+                <span class="ai-label">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    AI Suggestions
+                </span>
+            </div>
+
+            <div class="course-grid">
+
+                <div class="course-card">
+                    <div class="course-icon purple">
+                        <i class="fa-brands fa-python"></i>
+                    </div>
+                    <span class="course-category">Programming</span>
+                    <h3>Python Programming</h3>
+                    <p>Build strong programming fundamentals and practical coding skills.</p>
+                    <a href="https://www.youtube.com/results?search_query=python+programming+course"
+                       target="_blank">Explore Course <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+                </div>
+
+                <div class="course-card">
+                    <div class="course-icon blue">
+                        <i class="fa-solid fa-globe"></i>
+                    </div>
+                    <span class="course-category">Web Development</span>
+                    <h3>Full Stack Web Development</h3>
+                    <p>Learn frontend and backend development through practical projects.</p>
+                    <a href="https://www.youtube.com/results?search_query=full+stack+web+development+course"
+                       target="_blank">Explore Course <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+                </div>
+
+                <div class="course-card">
+                    <div class="course-icon green">
+                        <i class="fa-solid fa-database"></i>
+                    </div>
+                    <span class="course-category">Database</span>
+                    <h3>SQL & Database</h3>
+                    <p>Learn database concepts and improve your data management skills.</p>
+                    <a href="https://www.youtube.com/results?search_query=SQL+database+course"
+                       target="_blank">Explore Course <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <footer class="footer">
+            <p>© 2026 Resume Analyzer System. All rights reserved.</p>
+            <p>Powered by AI <i class="fa-solid fa-heart"></i></p>
+        </footer>
+
+    </main>
+
+</div>
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Criteria | Resume Analyzer</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+        .criteria-page {
+            padding: 35px 45px;
+            color: #f5f7ff;
+        }
+
+        .criteria-heading {
+            margin-bottom: 30px;
+        }
+
+        .criteria-heading h1 {
+            font-size: 30px;
+            margin-bottom: 10px;
+        }
+
+        .criteria-heading p {
+            color: #91a5c5;
+        }
+
+        .criteria-card {
+            max-width: 950px;
+            padding: 30px;
+            border-radius: 20px;
+            background: #151f35;
+            border: 1px solid #283650;
+        }
+
+        .criteria-card h2 {
+            margin-bottom: 25px;
+            font-size: 21px;
+        }
+
+        .criteria-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 22px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .form-group.full {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            color: #b9c9e3;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid #344361;
+            outline: none;
+            background: #0d1629;
+            color: white;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: #7562ff;
+        }
+
+        .form-group textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .save-btn {
+            grid-column: 1 / -1;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            background: linear-gradient(100deg, #654de9, #397edb);
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .save-btn:hover {
+            opacity: 0.9;
+        }
+
+        #saveMessage {
+            grid-column: 1 / -1;
+            color: #36d9a0;
+            font-size: 14px;
+        }
+
+        @media(max-width: 700px) {
+            .criteria-page {
+                padding: 20px;
+            }
+
+            .criteria-form {
+                grid-template-columns: 1fr;
+            }
+
+            .form-group.full,
+            .save-btn,
+            #saveMessage {
+                grid-column: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="criteria-page">
+
+    <div class="criteria-heading">
+        <h1>Job Criteria</h1>
+        <p>Enter job requirements to compare resumes and generate an ATS score.</p>
+    </div>
+
+    <div class="criteria-card">
+
+        <h2>Enter Job Details</h2>
+
+        <form class="criteria-form" id="criteriaForm">
+
+            <div class="form-group">
+                <label>Job Title *</label>
+                <input type="text" id="jobTitle"
+                       placeholder="e.g. Python Developer" required>
+            </div>
+
+            <div class="form-group">
+                <label>Company Name</label>
+                <input type="text" id="companyName"
+                       placeholder="Enter company name">
+            </div>
+
+            <div class="form-group">
+                <label>Required Education</label>
+                <input type="text" id="education"
+                       placeholder="e.g. B.Tech CSE">
+            </div>
+
+            <div class="form-group">
+                <label>Experience Required</label>
+                <input type="text" id="experience"
+                       placeholder="e.g. Fresher / 1-2 years">
+            </div>
+
+            <div class="form-group full">
+                <label>Required Skills *</label>
+                <textarea id="requiredSkills"
+                    placeholder="e.g. Python, Flask, HTML, CSS, JavaScript, SQL"
+                    required></textarea>
+            </div>
+
+            <div class="form-group full">
+                <label>Job Description *</label>
+                <textarea id="jobDescription"
+                    placeholder="Paste the complete job description here..."
+                    required></textarea>
+            </div>
+
+            <button type="submit" class="save-btn">
+                Save Job Criteria →
+            </button>
+
+            <p id="saveMessage"></p>
+
+        </form>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+</body>
+</html>
