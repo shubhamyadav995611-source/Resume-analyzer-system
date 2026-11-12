@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account | Resume Analyzer</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="auth-body">
+
+    <div class="auth-wrapper">
+
+        <div class="auth-card">
+
+            <div class="auth-logo">
+                <i class="fa-solid fa-file-circle-check"></i>
+                <span>Resume<span class="logo-highlight">Analyzer</span></span>
+            </div>
+
+            <h2>Create Your Account</h2>
+            <p class="auth-subtitle">Save and track your resume analyses securely across all your devices.</p>
+
+            {% if error_message %}
+                <div class="auth-alert error">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>{{ error_message }}</span>
+                </div>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('register') }}" class="auth-form">
+
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <div class="input-with-icon">
+                        <i class="fa-regular fa-user"></i>
+                        <input type="text"
+                               id="name"
+                               name="name"
+                               placeholder="e.g. Rahul Sharma"
+                               required
+                               autofocus>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <div class="input-with-icon">
+                        <i class="fa-regular fa-envelope"></i>
+                        <input type="email"
+                               id="email"
+                               name="email"
+                               placeholder="you@example.com"
+                               required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="role">Role / Profile</label>
+                    <div class="input-with-icon">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                        <select id="role" name="role" required>
+                            <option value="Student">Student</option>
+                            <option value="Job Seeker">Job Seeker</option>
+                            <option value="Software Developer">Software Developer</option>
+                            <option value="Fresher">Fresher</option>
+                            <option value="Working Professional">Working Professional</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-with-icon">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password"
+                               id="password"
+                               name="password"
+                               placeholder="Minimum 6 characters"
+                               minlength="6"
+                               required>
+                    </div>
+                </div>
+
+                <button type="submit" class="primary-btn auth-btn">
+                    Create Account →
+                </button>
+
+            </form>
+
+            <div class="auth-footer">
+                <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
+            </div>
+
+        </div>
+
+    </div>
+
+</body>
+</html>

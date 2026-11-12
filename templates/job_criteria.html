@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,188 +6,175 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Job Criteria | Resume Analyzer</title>
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
 
     <style>
         .criteria-page {
-            padding: 35px 45px;
-            color: #f5f7ff;
-        }
-
-        .criteria-heading {
-            margin-bottom: 30px;
-        }
-
-        .criteria-heading h1 {
-            font-size: 30px;
-            margin-bottom: 10px;
-        }
-
-        .criteria-heading p {
-            color: #91a5c5;
-        }
-
-        .criteria-card {
-            max-width: 950px;
-            padding: 30px;
-            border-radius: 20px;
-            background: #151f35;
-            border: 1px solid #283650;
-        }
-
-        .criteria-card h2 {
-            margin-bottom: 25px;
-            font-size: 21px;
+            max-width: 850px;
+            margin: 40px auto;
+            padding: 25px;
+            color: #f4f6ff;
         }
 
         .criteria-form {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
         }
 
         .form-group {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-        }
-
-        .form-group.full {
-            grid-column: 1 / -1;
+            gap: 8px;
         }
 
         .form-group label {
-            color: #b9c9e3;
-            font-size: 14px;
+            font-weight: 600;
         }
 
         .form-group input,
         .form-group textarea {
             width: 100%;
-            padding: 14px;
-            border-radius: 10px;
-            border: 1px solid #344361;
-            outline: none;
-            background: #0d1629;
-            color: white;
-            font-size: 14px;
             box-sizing: border-box;
-        }
-
-        .form-group input:focus,
-        .form-group textarea:focus {
-            border-color: #7562ff;
+            padding: 13px;
+            border: 1px solid rgba(255,255,255,.15);
+            border-radius: 8px;
+            background: #141e33;
+            color: white;
+            font-size: 15px;
         }
 
         .form-group textarea {
-            min-height: 150px;
+            min-height: 120px;
             resize: vertical;
         }
 
         .save-btn {
-            grid-column: 1 / -1;
-            padding: 15px;
+            padding: 14px;
             border: none;
-            border-radius: 10px;
+            border-radius: 8px;
+            background: #7565f5;
             color: white;
-            background: linear-gradient(100deg, #654de9, #397edb);
-            font-size: 15px;
+            font-size: 16px;
             font-weight: bold;
             cursor: pointer;
         }
 
-        .save-btn:hover {
-            opacity: 0.9;
+        .success-message {
+            padding: 14px;
+            margin-bottom: 20px;
+            border: 1px solid #22c55e;
+            border-radius: 8px;
+            color: #4ade80;
+            background: rgba(34,197,94,.12);
         }
 
-        #saveMessage {
-            grid-column: 1 / -1;
-            color: #36d9a0;
-            font-size: 14px;
+        .error-message {
+            padding: 14px;
+            margin-bottom: 20px;
+            border: 1px solid #ef4444;
+            border-radius: 8px;
+            color: #ff7777;
         }
 
-        @media(max-width: 700px) {
-            .criteria-page {
-                padding: 20px;
-            }
-
-            .criteria-form {
-                grid-template-columns: 1fr;
-            }
-
-            .form-group.full,
-            .save-btn,
-            #saveMessage {
-                grid-column: 1;
-            }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #a5b4fc;
+            text-decoration: none;
         }
     </style>
 </head>
 
 <body>
 
-<div class="criteria-page">
+<main class="criteria-page">
 
-    <div class="criteria-heading">
-        <h1>Job Criteria</h1>
-        <p>Enter job requirements to compare resumes and generate an ATS score.</p>
-    </div>
+    <a href="{{ url_for('dashboard') }}" class="back-link">
+        ← Back to Dashboard
+    </a>
 
-    <div class="criteria-card">
+    <h1>Job Criteria</h1>
+    <p>Enter job details and required skills for resume comparison.</p>
 
-        <h2>Enter Job Details</h2>
+    {% if success_message %}
+        <div class="success-message">
+            ✓ {{ success_message }}
+        </div>
+    {% endif %}
 
-        <form class="criteria-form" id="criteriaForm">
+    {% if error_message %}
+        <div class="error-message">
+            {{ error_message }}
+        </div>
+    {% endif %}
 
-            <div class="form-group">
-                <label>Job Title *</label>
-                <input type="text" id="jobTitle"
-                       placeholder="e.g. Python Developer" required>
-            </div>
+    <form class="criteria-form"
+          id="criteriaForm"
+          method="POST"
+          action="{{ url_for('job_criteria') }}">
 
-            <div class="form-group">
-                <label>Company Name</label>
-                <input type="text" id="companyName"
-                       placeholder="Enter company name">
-            </div>
+        <div class="form-group">
+            <label for="jobTitle">Job Title *</label>
+            <input type="text"
+                   id="jobTitle"
+                   name="jobTitle"
+                   value="{{ saved_criteria['job_title'] if saved_criteria else '' }}"
+                   placeholder="Software Developer"
+                   required>
+        </div>
 
-            <div class="form-group">
-                <label>Required Education</label>
-                <input type="text" id="education"
-                       placeholder="e.g. B.Tech CSE">
-            </div>
+        <div class="form-group">
+            <label for="companyName">Company Name</label>
+            <input type="text"
+                   id="companyName"
+                   name="companyName"
+                   value="{{ saved_criteria['company_name'] if saved_criteria else '' }}"
+                   placeholder="ABC Technologies">
+        </div>
 
-            <div class="form-group">
-                <label>Experience Required</label>
-                <input type="text" id="experience"
-                       placeholder="e.g. Fresher / 1-2 years">
-            </div>
+        <div class="form-group">
+            <label for="education">Required Education</label>
+            <input type="text"
+                   id="education"
+                   name="education"
+                   value="{{ saved_criteria['education'] if saved_criteria else '' }}"
+                   placeholder="B.Tech CSE / IT">
+        </div>
 
-            <div class="form-group full">
-                <label>Required Skills *</label>
-                <textarea id="requiredSkills"
-                    placeholder="e.g. Python, Flask, HTML, CSS, JavaScript, SQL"
-                    required></textarea>
-            </div>
+        <div class="form-group">
+            <label for="experience">Experience</label>
+            <input type="text"
+                   id="experience"
+                   name="experience"
+                   value="{{ saved_criteria['experience'] if saved_criteria else '' }}"
+                   placeholder="Fresher (0-1 Years)">
+        </div>
 
-            <div class="form-group full">
-                <label>Job Description *</label>
-                <textarea id="jobDescription"
-                    placeholder="Paste the complete job description here..."
-                    required></textarea>
-            </div>
+        <div class="form-group">
+            <label for="requiredSkills">Required Skills *</label>
+            <textarea id="requiredSkills"
+                      name="requiredSkills"
+                      placeholder="Python, Java, DSA, HTML, CSS, JavaScript, SQL"
+                      required>{{ saved_criteria['required_skills'] if saved_criteria else '' }}</textarea>
+        </div>
 
-            <button type="submit" class="save-btn">
-                Save Job Criteria →
-            </button>
+        <div class="form-group">
+            <label for="jobDescription">Job Description *</label>
+            <textarea id="jobDescription"
+                      name="jobDescription"
+                      placeholder="Enter job responsibilities and requirements..."
+                      required>{{ saved_criteria['job_description'] if saved_criteria else '' }}</textarea>
+        </div>
 
-            <p id="saveMessage"></p>
+        <button type="submit" class="save-btn">
+            Save Job Criteria
+        </button>
 
-        </form>
-    </div>
-</div>
+    </form>
 
-<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</main>
 
 </body>
 </html>

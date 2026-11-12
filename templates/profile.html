@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile | Resume Analyzer</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="profile-body">
+
+    <div class="profile-container">
+
+        <div class="profile-top-bar">
+            <a href="{{ url_for('dashboard') }}" class="back-link">
+                <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+            </a>
+            <a href="{{ url_for('logout') }}" class="logout-link">
+                <i class="fa-solid fa-right-from-bracket"></i> Logout
+            </a>
+        </div>
+
+        {% if success_message %}
+            <div class="auth-alert success">
+                <i class="fa-solid fa-circle-check"></i>
+                <span>{{ success_message }}</span>
+            </div>
+        {% endif %}
+
+        {% if error_message %}
+            <div class="auth-alert error">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span>{{ error_message }}</span>
+            </div>
+        {% endif %}
+
+        <!-- PROFILE HEADER CARD -->
+        <div class="profile-header-card">
+
+            <div class="profile-avatar-large">
+                {{ current_user.name[0].upper() }}
+            </div>
+
+            <div class="profile-header-info">
+                <h2>{{ current_user.name }}</h2>
+                <div class="badge-row">
+                    <span class="user-role-badge">
+                        <i class="fa-solid fa-user-tag"></i> {{ current_user.role }}
+                    </span>
+                    <span class="member-since">
+                        <i class="fa-regular fa-calendar"></i> Member since {{ current_user.created_at }}
+                    </span>
+                </div>
+                <p class="profile-email">
+                    <i class="fa-regular fa-envelope"></i> {{ current_user.email }}
+                </p>
+            </div>
+
+        </div>
+
+        <!-- STATS CARDS -->
+        <div class="profile-stats-grid">
+
+            <div class="profile-stat-box">
+                <div class="stat-icon purple">
+                    <i class="fa-solid fa-file-lines"></i>
+                </div>
+                <div>
+                    <h3>{{ total_resumes }}</h3>
+                    <p>Total Resumes Analyzed</p>
+                </div>
+            </div>
+
+            <div class="profile-stat-box">
+                <div class="stat-icon blue">
+                    <i class="fa-solid fa-bullseye"></i>
+                </div>
+                <div>
+                    <h3>{{ average_score }}%</h3>
+                    <p>Average ATS Score</p>
+                </div>
+            </div>
+
+            <div class="profile-stat-box">
+                <div class="stat-icon green">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                <div>
+                    <h3>{{ best_score }}%</h3>
+                    <p>Highest ATS Score</p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- PROFILE UPDATE & PASSWORD CHANGE -->
+        <div class="profile-sections-grid">
+
+            <!-- EDIT PROFILE FORM -->
+            <div class="profile-card">
+                <h3><i class="fa-solid fa-user-pen"></i> Update Profile Details</h3>
+                <form method="POST" action="{{ url_for('profile') }}" class="profile-form">
+                    <input type="hidden" name="action" value="update_profile">
+
+                    <div class="form-group">
+                        <label for="name">Full Name</label>
+                        <input type="text" id="name" name="name" value="{{ current_user.name }}" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="role">Role / Profile</label>
+                        <select id="role" name="role" required>
+                            <option value="Student" {% if current_user.role == 'Student' %}selected{% endif %}>Student</option>
+                            <option value="Job Seeker" {% if current_user.role == 'Job Seeker' %}selected{% endif %}>Job Seeker</option>
+                            <option value="Software Developer" {% if current_user.role == 'Software Developer' %}selected{% endif %}>Software Developer</option>
+                            <option value="Fresher" {% if current_user.role == 'Fresher' %}selected{% endif %}>Fresher</option>
+                            <option value="Working Professional" {% if current_user.role == 'Working Professional' %}selected{% endif %}>Working Professional</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="primary-btn">Save Changes</button>
+                </form>
+            </div>
+
+            <!-- CHANGE PASSWORD FORM -->
+            <div class="profile-card">
+                <h3><i class="fa-solid fa-key"></i> Change Password</h3>
+                <form method="POST" action="{{ url_for('profile') }}" class="profile-form">
+                    <input type="hidden" name="action" value="change_password">
+
+                    <div class="form-group">
+                        <label for="current_password">Current Password</label>
+                        <input type="password" id="current_password" name="current_password" placeholder="Enter current password" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="new_password">New Password</label>
+                        <input type="password" id="new_password" name="new_password" placeholder="Minimum 6 characters" minlength="6" required>
+                    </div>
+
+                    <button type="submit" class="primary-btn">Update Password</button>
+                </form>
+            </div>
+
+        </div>
+
+        <!-- USER'S RESUME ANALYSES HISTORY -->
+        <div class="profile-card full-width">
+
+            <div class="section-header-flex">
+                <h3><i class="fa-solid fa-clock-rotate-left"></i> Your Previous Resume Analyses</h3>
+                <span class="count-pill">{{ user_history|length }} Total Analyses</span>
+            </div>
+
+            {% if user_history %}
+                <div class="profile-history-table-wrapper">
+                    <table class="profile-history-table">
+                        <thead>
+                            <tr>
+                                <th>Resume File</th>
+                                <th>Job Criteria</th>
+                                <th>ATS Score</th>
+                                <th>Analyzed On</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in user_history %}
+                                <tr>
+                                    <td>
+                                        <div class="table-filename">
+                                            <i class="fa-solid fa-file-pdf"></i>
+                                            <strong>{{ item.filename }}</strong>
+                                        </div>
+                                    </td>
+                                    <td>{{ item.job_title }}</td>
+                                    <td>
+                                        <span class="score-badge-table {% if item.ats_score >= 70 %}high{% elif item.ats_score >= 50 %}medium{% else %}low{% endif %}">
+                                            {{ item.ats_score }}%
+                                        </span>
+                                    </td>
+                                    <td><small>{{ item.created_at }}</small></td>
+                                    <td>
+                                        <a href="{{ url_for('dashboard') }}" class="btn-table-view">
+                                            <i class="fa-solid fa-arrow-up-right-from-square"></i> Open
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fa-solid fa-folder-open"></i>
+                    </div>
+                    <h3>No Analyses Yet</h3>
+                    <p>Your resume analysis history will appear here once you analyze resumes on the dashboard.</p>
+                    <a href="{{ url_for('dashboard') }}" class="primary-btn" style="display:inline-block; margin-top: 15px;">
+                        Go to Dashboard →
+                    </a>
+                </div>
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</body>
+</html>

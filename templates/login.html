@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Resume Analyzer</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="auth-body">
+
+    <div class="auth-wrapper">
+
+        <div class="auth-card">
+
+            <div class="auth-logo">
+                <i class="fa-solid fa-file-circle-check"></i>
+                <span>Resume<span class="logo-highlight">Analyzer</span></span>
+            </div>
+
+            <h2>Welcome Back!</h2>
+            <p class="auth-subtitle">Login to access your dashboard and resume history from any device.</p>
+
+            {% if error_message %}
+                <div class="auth-alert error">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>{{ error_message }}</span>
+                </div>
+            {% endif %}
+
+            {% if success_message %}
+                <div class="auth-alert success">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>{{ success_message }}</span>
+                </div>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('login') }}" class="auth-form">
+
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <div class="input-with-icon">
+                        <i class="fa-regular fa-envelope"></i>
+                        <input type="email"
+                               id="email"
+                               name="email"
+                               placeholder="you@example.com"
+                               required
+                               autofocus>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-with-icon">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password"
+                               id="password"
+                               name="password"
+                               placeholder="Enter your password"
+                               required>
+                    </div>
+                </div>
+
+                <button type="submit" class="primary-btn auth-btn">
+                    Login to Dashboard →
+                </button>
+
+            </form>
+
+            <div class="auth-footer">
+                <p>Don't have an account? <a href="{{ url_for('register') }}">Create Account</a></p>
+            </div>
+
+        </div>
+
+    </div>
+
+</body>
+</html>

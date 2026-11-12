@@ -1,25 +1,29 @@
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resume Analyzer | Dashboard shubham yadav </title>
+
+    <title>Resume Analyzer | Dashboard</title>
 
     <link rel="stylesheet"
-    href="{{ url_for('static', filename='css/style.css') }}">
+          href="{{ url_for('static', filename='css/style.css') }}">
 
     <link rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+          rel="stylesheet">
 </head>
 
 <body>
 
 <div class="dashboard-container">
 
-    <!-- Sidebar -->
+    <!-- SIDEBAR -->
+
     <aside class="sidebar">
 
         <div class="logo">
@@ -30,6 +34,7 @@
         <div class="menu-heading">MENU</div>
 
         <nav class="nav-menu">
+
             <a href="#dashboard" class="nav-link active">
                 <i class="fa-solid fa-house"></i>
                 Dashboard
@@ -40,10 +45,10 @@
                 Upload Resume
             </a>
 
-            <a href="{{ url_for('job_criteria') }}">
-    <i class="fas fa-briefcase"></i>
-    <span>Job Criteria</span>
-</a>
+            <a href="{{ url_for('job_criteria') }}" class="nav-link">
+                <i class="fa-solid fa-briefcase"></i>
+                Job Criteria
+            </a>
 
             <a href="#history" class="nav-link">
                 <i class="fa-solid fa-chart-line"></i>
@@ -55,33 +60,38 @@
                 Recommended Courses
             </a>
 
-            <a href="#profile" class="nav-link">
+            <a href="{{ url_for('profile') }}" class="nav-link">
                 <i class="fa-solid fa-user"></i>
                 My Profile
             </a>
+
         </nav>
 
         <div class="sidebar-bottom">
+
             <div class="help-card">
                 <i class="fa-solid fa-circle-question"></i>
                 <h4>Need Help?</h4>
                 <p>Get help with your resume analysis.</p>
-                <a href="#upload">Get Started <i class="fa-solid fa-arrow-right"></i></a>
+                <a href="#upload">Get Started →</a>
             </div>
 
-            <a href="#" class="nav-link logout">
+            <a href="{{ url_for('logout') }}" class="nav-link logout" title="Logout from session">
                 <i class="fa-solid fa-right-from-bracket"></i>
                 Logout
             </a>
+
         </div>
 
     </aside>
 
 
-    <!-- Main Content -->
+    <!-- MAIN CONTENT -->
+
     <main class="main-content" id="dashboard">
 
-        <!-- Topbar -->
+        <!-- TOPBAR -->
+
         <header class="topbar">
 
             <div>
@@ -90,112 +100,119 @@
             </div>
 
             <div class="top-actions">
-                <button class="icon-btn" aria-label="Notifications">
+
+                <button class="icon-btn" type="button" aria-label="Notifications">
                     <i class="fa-regular fa-bell"></i>
-                    <span class="notification-dot"></span>
                 </button>
 
-                <div class="user-profile" id="profile">
-                    <div class="avatar">U</div>
+                <a href="{{ url_for('profile') }}" class="user-profile" id="profile" style="text-decoration:none; color:inherit;" title="View My Profile">
+                    <div class="avatar">{{ current_user.name[0].upper() if current_user else 'U' }}</div>
                     <div>
-                        <h4>User Profile</h4>
-                        <span>Student</span>
+                        <h4>{{ current_user.name if current_user else 'User Profile' }}</h4>
+                        <span>{{ current_user.role if current_user else 'Student' }}</span>
                     </div>
-                    <i class="fa-solid fa-chevron-down"></i>
-                </div>
+                </a>
+
             </div>
 
         </header>
 
 
-        <!-- Welcome Banner -->
+        <!-- WELCOME BANNER -->
+
         <section class="welcome-banner">
 
             <div class="welcome-content">
+
                 <span class="welcome-tag">
-                    <i class="fa-solid fa-sparkles"></i>
                     AI POWERED RESUME ANALYSIS
                 </span>
 
-                <h1>Build a Resume That<br>Gets You <span>Hired!</span></h1>
+                <h1>
+                    Build a Resume That<br>
+                    Gets You <span>Hired!</span>
+                </h1>
 
                 <p>
-                    Analyze your resume, discover missing skills and
-                    improve your chances of getting shortlisted.
+                    Analyze your resume, discover missing skills
+                    and improve your chances of getting shortlisted.
                 </p>
 
                 <a href="#upload" class="primary-btn">
-                    Analyze My Resume
-                    <i class="fa-solid fa-arrow-right"></i>
+                    Analyze My Resume →
                 </a>
+
             </div>
 
             <div class="banner-illustration">
                 <div class="glow-circle"></div>
                 <i class="fa-solid fa-file-invoice"></i>
-                <div class="floating-icon icon-one">
+                <span class="floating-icon icon-one">
                     <i class="fa-solid fa-check"></i>
-                </div>
-                <div class="floating-icon icon-two">
-                    <i class="fa-solid fa-chart-pie"></i>
-                </div>
-                <div class="floating-icon icon-three">
-                    <i class="fa-solid fa-star"></i>
-                </div>
+                </span>
+                <span class="floating-icon icon-two">
+                    <i class="fa-solid fa-chart-line"></i>
+                </span>
             </div>
 
         </section>
 
 
-        <!-- Statistics -->
+        <!-- LIVE STATISTICS -->
+
         <section class="stats-grid">
 
             <div class="stat-card">
+
                 <div class="stat-top">
+                    <span class="stat-label">Total Resumes</span>
+
                     <div class="stat-icon purple">
                         <i class="fa-solid fa-file-lines"></i>
                     </div>
-                    <span class="stat-label">Total Resumes</span>
                 </div>
-                <h2>00</h2>
-                <p>Your uploaded resumes</p>
+
+                <h2 id="totalResumes">{{ "%02d" % total_resumes if total_resumes < 10 else total_resumes }}</h2>
+
+                <p>Your successfully analyzed resumes</p>
+
             </div>
 
+
             <div class="stat-card">
+
                 <div class="stat-top">
+                    <span class="stat-label">Average ATS Score</span>
+
                     <div class="stat-icon blue">
                         <i class="fa-solid fa-bullseye"></i>
                     </div>
-                    <span class="stat-label">Average ATS Score</span>
                 </div>
-                <h2>00<span>%</span></h2>
-                <p>Your average resume score</p>
-            </div>
 
-            <div class="stat-card">
-                <div class="stat-top">
-                    <div class="stat-icon green">
-                        <i class="fa-solid fa-code"></i>
-                    </div>
-                    <span class="stat-label">Skills Identified</span>
-                </div>
-                <h2>00</h2>
-                <p>Skills found in your resumes</p>
+                <h2 id="averageScore">{{ "%02d" % average_score if average_score < 10 else average_score }}%</h2>
+
+                <p>Your average resume score</p>
+
             </div>
 
         </section>
 
 
-        <!-- Upload Section -->
+        <!-- RESUME UPLOAD -->
+
         <section class="upload-section" id="upload">
 
             <div class="section-heading">
+
                 <div>
                     <h2>Analyze Your Resume</h2>
-                    <p>Upload your resume to get an AI-powered analysis.</p>
+                    <p>Upload your resume to get an analysis.</p>
                 </div>
+
                 <span class="supported-format">PDF / DOCX</span>
+
             </div>
+
 
             <div class="upload-box">
 
@@ -207,116 +224,307 @@
 
                 <p>Choose your resume file to start analyzing</p>
 
-                <label for="resumeFile" class="upload-btn">
-                    <i class="fa-solid fa-folder-open"></i>
-                    Choose Resume
-                </label>
+                <input
+                    type="file"
+                    id="resumeFile"
+                    name="resume"
+                    accept=".pdf,.docx"
+                >
 
-                <input type="file" id="resumeFile"
-                       accept=".pdf,.docx" hidden>
-
-                <p class="file-info" id="fileName">
+                <p id="fileName">
                     Maximum file size: 5 MB
                 </p>
 
-                <button class="analyze-btn" id="analyzeBtn" disabled>
-                    Analyze Resume <i class="fa-solid fa-arrow-right"></i>
+                <button
+                    type="button"
+                    class="analyze-btn"
+                    id="analyzeBtn"
+                >
+                    Analyze Resume →
                 </button>
+
+                <p id="uploadMessage" role="status"></p>
+
+            </div>
+
+
+            <!-- SKILLS BREAKDOWN (MATCHING & MISSING SKILLS SMALL BOXES) -->
+
+            <div id="skillsBreakdownSection"
+                 class="skills-breakdown-section"
+                 {% if not latest_analysis %}style="display:none;"{% endif %}>
+
+                <div class="skills-breakdown-header">
+
+                    <div>
+                        <h3 id="breakdownTitle">Resume Skills Breakdown</h3>
+                        <p id="breakdownMeta">
+                            {% if latest_analysis %}
+                                Showing skills for <strong>{{ latest_analysis.filename }}</strong> ({{ latest_analysis.job_title }})
+                            {% else %}
+                                Showing skills for uploaded resume
+                            {% endif %}
+                        </p>
+                    </div>
+
+                    <span id="breakdownBadge" class="score-pill">
+                        ATS Score: <strong id="breakdownScoreVal">{{ latest_analysis.ats_score if latest_analysis else 0 }}%</strong>
+                    </span>
+
+                </div>
+
+                <div class="skills-boxes-grid">
+
+                    <!-- Matching Skills Small Box -->
+                    <div class="skill-box matching-box">
+
+                        <div class="skill-box-top">
+                            <div class="skill-box-label">
+                                <i class="fa-solid fa-circle-check"></i>
+                                <span>Matching Skills</span>
+                            </div>
+                            <span class="skill-count-badge green-badge" id="matchedCountBadge">
+                                {{ latest_matched_skills|length if latest_matched_skills else 0 }} Skills
+                            </span>
+                        </div>
+
+                        <div class="skill-tags-wrapper" id="matchedSkillsList">
+                            {% if latest_matched_skills %}
+                                {% for skill in latest_matched_skills %}
+                                    <span class="skill-tag matched">
+                                        <i class="fa-solid fa-check"></i> {{ skill }}
+                                    </span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="empty-skill-msg">No matching skills found for this resume.</span>
+                            {% endif %}
+                        </div>
+
+                    </div>
+
+                    <!-- Missing Skills Small Box -->
+                    <div class="skill-box missing-box">
+
+                        <div class="skill-box-top">
+                            <div class="skill-box-label">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                <span>Missing Skills</span>
+                            </div>
+                            <span class="skill-count-badge red-badge" id="missingCountBadge">
+                                {{ latest_missing_skills|length if latest_missing_skills else 0 }} Skills
+                            </span>
+                        </div>
+
+                        <div class="skill-tags-wrapper" id="missingSkillsList">
+                            {% if latest_missing_skills %}
+                                {% for skill in latest_missing_skills %}
+                                    <span class="skill-tag missing">
+                                        <i class="fa-solid fa-xmark"></i> {{ skill }}
+                                    </span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="empty-skill-msg">No missing skills! 100% matched.</span>
+                            {% endif %}
+                        </div>
+
+                    </div>
+
+                </div>
 
             </div>
 
         </section>
 
 
-        <!-- History -->
+        <!-- ANALYSIS HISTORY -->
+
         <section class="content-section" id="history">
 
             <div class="section-heading">
+
                 <div>
                     <h2>Recent Analysis</h2>
                     <p>Track your previous resume analysis.</p>
                 </div>
-                <a href="#history" class="view-all">View All <i class="fa-solid fa-arrow-right"></i></a>
+
+                {% if recent_history %}
+                    <button id="clearAllHistoryBtn" class="clear-all-btn" type="button" title="Clear all analysis history">
+                        <i class="fa-solid fa-trash-can"></i> Clear All
+                    </button>
+                {% endif %}
+
             </div>
 
-            <div class="history-card">
 
-                <div class="empty-state">
-                    <div class="empty-icon">
-                        <i class="fa-solid fa-folder-open"></i>
-                    </div>
-                    <h3>No Analysis Yet</h3>
-                    <p>Your resume analysis history will appear here.</p>
-                    <a href="#upload">Analyze Your First Resume</a>
+            {% if recent_history %}
+
+                <div class="history-list">
+
+                    {% for item in recent_history %}
+
+                        <div class="history-card"
+                             data-id="{{ item.id }}"
+                             data-filename="{{ item.filename }}"
+                             data-job="{{ item.job_title }}"
+                             data-score="{{ item.ats_score }}"
+                             data-matched="{{ item.matched_skills }}"
+                             data-missing="{{ item.missing_skills }}">
+
+                            <div class="history-item-info">
+
+                                <div class="stat-icon purple">
+                                    <i class="fa-solid fa-file-pdf"></i>
+                                </div>
+
+                                <div>
+                                    <h3>{{ item.filename }}</h3>
+                                    <p>{{ item.job_title }}</p>
+                                    <small>{{ item.created_at }}</small>
+                                </div>
+
+                            </div>
+
+                            <div class="history-actions">
+
+                                <div class="history-score">
+                                    <span>ATS Score</span>
+                                    <strong>{{ item.ats_score }}%</strong>
+                                </div>
+
+                                <button type="button"
+                                        class="view-history-btn"
+                                        title="View matching & missing skills">
+                                    <i class="fa-solid fa-eye"></i> View Skills
+                                </button>
+
+                                <button type="button"
+                                        class="delete-history-btn"
+                                        data-id="{{ item.id }}"
+                                        title="Delete this analysis">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    {% endfor %}
+
                 </div>
 
-            </div>
+            {% else %}
+
+                <div class="history-card">
+
+                    <div class="empty-state">
+
+                        <div class="empty-icon">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        </div>
+
+                        <h3>No Analysis Yet</h3>
+
+                        <p>
+                            Your resume analysis history will appear here
+                            after your first successful analysis.
+                        </p>
+
+                        <a href="#upload">Upload Your Resume →</a>
+
+                    </div>
+
+                </div>
+
+            {% endif %}
 
         </section>
 
 
-        <!-- Courses -->
+        <!-- RECOMMENDED COURSES -->
+
         <section class="content-section" id="courses">
 
             <div class="section-heading">
+
                 <div>
                     <h2>Recommended Courses</h2>
-                    <p>Improve your skills and strengthen your resume.</p>
+                    <p>
+                        Improve your skills and strengthen your resume.
+                    </p>
                 </div>
+
                 <span class="ai-label">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i>
-                    AI Suggestions
+                    ✨ AI Suggestions
                 </span>
+
             </div>
 
-            <div class="course-grid">
+            <div class="course-grid" id="courseGrid">
 
-                <div class="course-card">
-                    <div class="course-icon purple">
-                        <i class="fa-brands fa-python"></i>
-                    </div>
-                    <span class="course-category">Programming</span>
-                    <h3>Python Programming</h3>
-                    <p>Build strong programming fundamentals and practical coding skills.</p>
-                    <a href="https://www.youtube.com/results?search_query=python+programming+course"
-                       target="_blank">Explore Course <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
-                </div>
+                {% if recommended_courses %}
 
-                <div class="course-card">
-                    <div class="course-icon blue">
-                        <i class="fa-solid fa-globe"></i>
-                    </div>
-                    <span class="course-category">Web Development</span>
-                    <h3>Full Stack Web Development</h3>
-                    <p>Learn frontend and backend development through practical projects.</p>
-                    <a href="https://www.youtube.com/results?search_query=full+stack+web+development+course"
-                       target="_blank">Explore Course <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
-                </div>
+                    {% for course in recommended_courses %}
 
-                <div class="course-card">
-                    <div class="course-icon green">
-                        <i class="fa-solid fa-database"></i>
+                        <div class="course-card">
+
+                            <div class="course-icon purple">
+                                <i class="fa-solid fa-graduation-cap"></i>
+                            </div>
+
+                            <span class="course-category">Missing Skill: {{ course.skill }}</span>
+
+                            <h3>{{ course.title }}</h3>
+
+                            <p>{{ course.description }}</p>
+
+                            <a href="{{ course.url }}" target="_blank" rel="noopener noreferrer">
+                                Explore Course <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            </a>
+
+                        </div>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <div class="course-empty">
+
+                        <i class="fa-solid fa-graduation-cap"></i>
+
+                        <h3>No Recommendations Yet</h3>
+
+                        <p>
+                            Analyze your resume to get personalized
+                            course recommendations.
+                        </p>
+
                     </div>
-                    <span class="course-category">Database</span>
-                    <h3>SQL & Database</h3>
-                    <p>Learn database concepts and improve your data management skills.</p>
-                    <a href="https://www.youtube.com/results?search_query=SQL+database+course"
-                       target="_blank">Explore Course <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
-                </div>
+
+                {% endif %}
 
             </div>
 
         </section>
 
 
+        <!-- FOOTER -->
+
         <footer class="footer">
-            <p>© 2026 Resume Analyzer System. All rights reserved.</p>
-            <p>Powered by AI <i class="fa-solid fa-heart"></i></p>
+
+            <p>
+                © 2026 Resume Analyzer System. All rights reserved.
+            </p>
+
+            <p>Powered by AI</p>
+
         </footer>
 
     </main>
 
 </div>
+
+
+<!-- JAVASCRIPT -->
 
 <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 
