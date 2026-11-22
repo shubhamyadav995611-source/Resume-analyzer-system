@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify OTP | Resume Analyzer</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="auth-body">
+
+    <div class="auth-wrapper">
+
+        <div class="auth-card">
+
+            <div class="auth-logo">
+                <i class="fa-solid fa-file-circle-check"></i>
+                <span>Resume<span class="logo-highlight">Analyzer</span></span>
+            </div>
+
+            {% if purpose == 'register' %}
+                <h2>Verify Your Email</h2>
+                <p class="auth-subtitle">We sent a one-time verification code to complete your registration.</p>
+            {% else %}
+                <h2>Email Authentication</h2>
+                <p class="auth-subtitle">Enter the 6-digit verification code sent to your registered email to continue.</p>
+            {% endif %}
+
+            <div style="text-align: center;">
+                <div class="auth-badge">
+                    <i class="fa-regular fa-envelope"></i>
+                    <span>{{ masked_email }}</span>
+                </div>
+            </div>
+
+            {% if error_message %}
+                <div class="auth-alert error">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>{{ error_message }}</span>
+                </div>
+            {% endif %}
+
+            {% if success_message %}
+                <div class="auth-alert success">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>{{ success_message }}</span>
+                </div>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('verify_otp') }}" class="auth-form" id="otpForm">
+
+                <div class="form-group">
+                    <label for="otp" style="text-align: center; display: block;">Enter 6-Digit OTP Code</label>
+                    <div class="input-with-icon" style="justify-content: center;">
+                        <input type="text"
+                               id="otp"
+                               name="otp"
+                               class="otp-input-field"
+                               placeholder="······"
+                               maxlength="6"
+                               pattern="\d{6}"
+                               inputmode="numeric"
+                               autocomplete="one-time-code"
+                               required
+                               autofocus>
+                    </div>
+                    <small style="display:block; text-align: center; margin-top: 6px; color: var(--muted); font-size: 11px;">
+                        <i class="fa-regular fa-clock"></i> Code expires in 10 minutes
+                    </small>
+                </div>
+
+                <button type="submit" class="primary-btn auth-btn">
+                    Verify Code &amp; Continue →
+                </button>
+
+            </form>
+
+            <div class="resend-container">
+                <p id="countdownText" style="margin-bottom: 8px;">
+                    Didn't receive the email? Check spam or wait <strong id="timer">30</strong>s
+                </p>
+                <form method="POST" action="{{ url_for('resend_otp') }}" style="display: inline;">
+                    <button type="submit" id="resendBtn" class="resend-btn" disabled>
+                        <i class="fa-solid fa-rotate-right"></i> Resend Verification Code
+                    </button>
+                </form>
+            </div>
+
+            <div class="auth-footer" style="margin-top: 18px; padding-top: 14px;">
+                <p><a href="{{ url_for('cancel_auth') }}"><i class="fa-solid fa-arrow-left"></i> Cancel and return to Login</a></p>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        // Auto-focus and filter digits only
+        const otpInput = document.getElementById('otp');
+        otpInput.addEventListener('input', function(e) {
+            this.value = this.value.replace(/\D/g, '');
+            if (this.value.length === 6) {
+                // Auto submit when 6 digits are reached
+                document.getElementById('otpForm').submit();
+            }
+        });
+
+        // 30-second cooldown timer for resending
+        let countdown = 30;
+        const timerEl = document.getElementById('timer');
+        const resendBtn = document.getElementById('resendBtn');
+        const countdownText = document.getElementById('countdownText');
+
+        const interval = setInterval(function() {
+            countdown--;
+            if (timerEl) timerEl.innerText = countdown;
+            if (countdown <= 0) {
+                clearInterval(interval);
+                resendBtn.disabled = false;
+                countdownText.innerHTML = "Didn't receive the code? You can now resend:";
+            }
+        }, 1000);
+    </script>
+
+</body>
+</html>

@@ -21,7 +21,7 @@
             </div>
 
             <h2>Welcome Back!</h2>
-            <p class="auth-subtitle">Login to access your dashboard and resume history from any device.</p>
+            <p class="auth-subtitle">Login securely with your verified email and OTP authentication.</p>
 
             {% if error_message %}
                 <div class="auth-alert error">
@@ -37,23 +37,47 @@
                 </div>
             {% endif %}
 
-            <form method="POST" action="{{ url_for('login') }}" class="auth-form">
+            {% if info_message %}
+                <div class="auth-alert info">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span>{{ info_message }}</span>
+                </div>
+            {% endif %}
+
+            <!-- Auth Mode Switcher -->
+            <div class="auth-tabs">
+                <button type="button" class="auth-tab-btn active" id="tabPasswordBtn" onclick="switchLoginMode('password')">
+                    <i class="fa-solid fa-shield-halved"></i> Password + OTP
+                </button>
+                <button type="button" class="auth-tab-btn" id="tabOtpBtn" onclick="switchLoginMode('otp')">
+                    <i class="fa-solid fa-envelope-open-text"></i> Quick Email OTP
+                </button>
+            </div>
+
+            <!-- Form 1: Password + OTP -->
+            <form method="POST" action="{{ url_for('login') }}" class="auth-form" id="passwordLoginForm">
+                <input type="hidden" name="login_type" value="password_otp">
 
                 <div class="form-group">
-                    <label for="email">Email Address</label>
+                    <label for="email">Valid Registered Email</label>
                     <div class="input-with-icon">
                         <i class="fa-regular fa-envelope"></i>
                         <input type="email"
                                id="email"
                                name="email"
+                               value="{{ email or '' }}"
                                placeholder="you@example.com"
                                required
+                               autocomplete="email"
                                autofocus>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="password">Password</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label for="password" style="margin-bottom: 0;">Password</label>
+                        <a href="{{ url_for('forgot_password') }}" class="auth-link">Forgot Password?</a>
+                    </div>
                     <div class="input-with-icon">
                         <i class="fa-solid fa-lock"></i>
                         <input type="password"
@@ -65,9 +89,38 @@
                 </div>
 
                 <button type="submit" class="primary-btn auth-btn">
-                    Login to Dashboard →
+                    Continue to Email OTP →
                 </button>
+            </form>
 
+            <!-- Form 2: Direct OTP Login (Passwordless) -->
+            <form method="POST" action="{{ url_for('login_with_otp_request') }}" class="auth-form" id="otpLoginForm" style="display: none;">
+                <input type="hidden" name="login_type" value="otp_only">
+
+                <div class="form-group">
+                    <label for="otp_email">Registered Email Address</label>
+                    <div class="input-with-icon">
+                        <i class="fa-regular fa-envelope"></i>
+                        <input type="email"
+                               id="otp_email"
+                               name="email"
+                               value="{{ email or '' }}"
+                               placeholder="you@example.com"
+                               required
+                               autocomplete="email">
+                    </div>
+                    <small style="display:block; margin-top: 6px; color: var(--muted); font-size: 11px;">
+                        <i class="fa-solid fa-info-circle"></i> We will send a 6-digit OTP code to this email to log you in.
+                    </small>
+                </div>
+
+                <div class="auth-sub-row">
+                    <a href="{{ url_for('forgot_password') }}" class="auth-link">Need to reset password?</a>
+                </div>
+
+                <button type="submit" class="primary-btn auth-btn">
+                    Send Login OTP Code →
+                </button>
             </form>
 
             <div class="auth-footer">
@@ -78,5 +131,35 @@
 
     </div>
 
+    <script>
+        function switchLoginMode(mode) {
+            const pwdForm = document.getElementById('passwordLoginForm');
+            const otpForm = document.getElementById('otpLoginForm');
+            const tabPwd = document.getElementById('tabPasswordBtn');
+            const tabOtp = document.getElementById('tabOtpBtn');
+
+            if (mode === 'otp') {
+                pwdForm.style.display = 'none';
+                otpForm.style.display = 'flex';
+                tabPwd.classList.remove('active');
+                tabOtp.classList.add('active');
+                const otpEmail = document.getElementById('otp_email');
+                if (document.getElementById('email').value) {
+                    otpEmail.value = document.getElementById('email').value;
+                }
+                otpEmail.focus();
+            } else {
+                otpForm.style.display = 'none';
+                pwdForm.style.display = 'flex';
+                tabOtp.classList.remove('active');
+                tabPwd.classList.add('active');
+                const emailInput = document.getElementById('email');
+                if (document.getElementById('otp_email').value) {
+                    emailInput.value = document.getElementById('otp_email').value;
+                }
+                emailInput.focus();
+            }
+        }
+    </script>
 </body>
 </html>

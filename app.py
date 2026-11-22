@@ -6,12 +6,45 @@ import os
 import uuid
 import re
 import json
+import time
+import secrets
+import smtplib
+import ssl
+import socket
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 from functools import wraps
 from datetime import datetime
 from urllib.parse import quote_plus
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from werkzeug.utils import secure_filename
+
+# Helper to automatically load environment configuration (.env with fallback to .env.example)
+def load_env_file():
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    env_path = os.path.join(base_dir, ".env")
+    # If .env does not exist, fall back to .env.example
+    if not os.path.exists(env_path):
+        alt_path = os.path.join(base_dir, ".env.example")
+        if os.path.exists(alt_path):
+            env_path = alt_path
+
+    if os.path.exists(env_path):
+        try:
+            with open(env_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        k, v = line.split("=", 1)
+                        k = k.strip()
+                        v = v.strip().strip('"').strip("'")
+                        if k:
+                            os.environ[k] = v
+        except Exception as e:
+            print(f"[ENV WARNING] Could not load {env_path}: {e}")
+
+load_env_file()
 
 try:
     from werkzeug.security import generate_password_hash, check_password_hash
@@ -93,6 +126,20 @@ def init_db():
             )
         """)
 
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS email_otps (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT NOT NULL,
+                otp_code TEXT NOT NULL,
+                purpose TEXT NOT NULL,
+                expires_at INTEGER NOT NULL,
+                used INTEGER DEFAULT 0,
+                created_at TEXT NOT NULL
+            )
+        """)
+
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_email_otps ON email_otps(email, purpose, used);")
+
         # Migration: ensure user_id column exists
         try:
             conn.execute("ALTER TABLE resume_history ADD COLUMN user_id INTEGER;")
@@ -105,8 +152,226 @@ init_db()
 
 
 # ==========================================
-# 2.1 AUTHENTICATION HELPERS
+# 2.1 AUTHENTICATION & EMAIL OTP HELPERS
 # ==========================================
+
+SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", 587))
+SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "").strip()
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "").strip()
+SMTP_FROM_NAME = os.environ.get("SMTP_FROM_NAME", "Resume Analyzer")
+SMTP_USE_TLS = os.environ.get("SMTP_USE_TLS", "true").lower() in ("true", "1", "yes")
+
+EMAIL_REGEX = re.compile(
+    r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$"
+)
+
+def is_valid_email(email):
+    """Strict RFC compliant email address format verification."""
+    if not email or not isinstance(email, str):
+        return False
+    email = email.strip()
+    if len(email) > 254 or "@" not in email:
+        return False
+    parts = email.split("@")
+    if len(parts) != 2:
+        return False
+    domain = parts[1]
+    if "." not in domain or domain.startswith(".") or domain.endswith("."):
+        return False
+    tld = domain.split(".")[-1]
+    if len(tld) < 2:
+        return False
+    return bool(EMAIL_REGEX.match(email))
+
+def mask_email(email):
+    """Mask email for privacy e.g. shubhamyadav995611@gmail.com -> s***1@gmail.com"""
+    if not email or "@" not in email:
+        return email or ""
+    user_part, domain = email.strip().split("@", 1)
+    if len(user_part) <= 2:
+        masked_user = user_part[0] + "***"
+    else:
+        masked_user = user_part[0] + "***" + user_part[-1]
+    return f"{masked_user}@{domain}"
+
+def generate_and_save_otp(email, purpose):
+    """
+    Generates a secure 6-digit OTP, stores it in email_otps table,
+    and returns otp_code.
+    """
+    email = email.strip().lower()
+    otp_code = f"{secrets.randbelow(900000) + 100000}"
+    expires_at = int(time.time()) + 600  # 10 minutes expiry
+    created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    with sqlite3.connect(DATABASE) as conn:
+        # Invalidate previous un-used OTPs for this email and purpose
+        conn.execute("""
+            UPDATE email_otps SET used = 1 
+            WHERE email = ? AND purpose = ? AND used = 0
+        """, (email, purpose))
+
+        conn.execute("""
+            INSERT INTO email_otps (email, otp_code, purpose, expires_at, used, created_at)
+            VALUES (?, ?, ?, ?, 0, ?)
+        """, (email, otp_code, purpose, expires_at, created_at))
+
+    return otp_code
+
+def verify_otp_code(email, purpose, entered_otp):
+    """
+    Verifies that entered_otp matches the latest valid, unexpired, unused OTP.
+    Returns (True, None) or (False, "Error message")
+    """
+    if not entered_otp or len(entered_otp.strip()) != 6:
+        return False, "Please enter the complete 6-digit verification code."
+
+    email = email.strip().lower()
+    now = int(time.time())
+    with sqlite3.connect(DATABASE) as conn:
+        conn.row_factory = sqlite3.Row
+        record = conn.execute("""
+            SELECT * FROM email_otps 
+            WHERE email = ? AND purpose = ? AND used = 0 AND expires_at > ?
+            ORDER BY id DESC LIMIT 1
+        """, (email, purpose, now)).fetchone()
+
+        if not record:
+            return False, "OTP code has expired or is invalid. Please request a new code."
+
+        if record["otp_code"] != entered_otp.strip():
+            return False, "Incorrect OTP code. Please check and try again."
+
+        # Mark OTP as used
+        conn.execute("UPDATE email_otps SET used = 1 WHERE id = ?", (record["id"],))
+
+    return True, None
+
+def send_otp_email(recipient_email, otp_code, purpose="login"):
+    """
+    Sends a 6-digit OTP to the recipient email via Gmail SMTP.
+    Returns (is_sent: bool, message: str)
+    """
+    load_env_file()
+
+    purpose_titles = {
+        "login": "Login Verification Code",
+        "register": "Registration Verification Code",
+        "reset_password": "Password Reset Code",
+    }
+    title = purpose_titles.get(purpose, "Verification Code")
+
+    server_host = os.environ.get("SMTP_SERVER", "smtp.gmail.com").strip()
+    server_port = int(os.environ.get("SMTP_PORT", 587))
+    smtp_user = os.environ.get("SMTP_USERNAME", "").strip()
+    smtp_pass = os.environ.get("SMTP_PASSWORD", "").strip()
+    sender_name = os.environ.get("SMTP_FROM_NAME", "Resume Analyzer").strip()
+    use_tls = os.environ.get("SMTP_USE_TLS", "true").lower() in ("true", "1", "yes")
+
+    if not smtp_user or not smtp_pass or "your_" in smtp_user.lower() or "your_" in smtp_pass.lower():
+        print("[SMTP ERROR] SMTP credentials missing or incomplete in environment/.env.")
+        return False, "SMTP credentials are not configured. Please add your Gmail address and 16-character App Password to .env."
+
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = f"{otp_code} is your {title} - Resume Analyzer"
+        msg["From"] = f"{sender_name} <{smtp_user}>"
+        msg["To"] = recipient_email
+
+        text_content = (
+            f"Hello,\n\n"
+            f"Your Resume Analyzer {title.lower()} is: {otp_code}\n\n"
+            f"This code will expire in 10 minutes. Please do not share it with anyone.\n\n"
+            f"If you did not request this code, please ignore this email.\n\n"
+            f"- Resume Analyzer Team"
+        )
+
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>{title}</title>
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0b0f19; margin: 0; padding: 30px 15px;">
+          <div style="max-width: 520px; margin: 0 auto; background: #131b2e; border-radius: 16px; border: 1px solid #1f2d4d; padding: 36px 32px; color: #f1f5f9; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <span style="font-size: 26px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">Resume<span style="color: #7565f5;">Analyzer</span></span>
+            </div>
+            <div style="background: rgba(117, 101, 245, 0.1); border-left: 4px solid #7565f5; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px;">
+              <h2 style="font-size: 18px; margin: 0; color: #c4b5fd;">{title}</h2>
+            </div>
+            <p style="font-size: 14px; color: #94a3b8; line-height: 1.6; margin-bottom: 16px;">
+              Hello,<br>You requested verification for your account associated with <strong style="color: #e2e8f0;">{recipient_email}</strong>. Use the one-time code below to proceed:
+            </p>
+            <div style="background: #0d1424; border: 2px dashed #7565f5; border-radius: 12px; padding: 22px; text-align: center; margin: 28px 0;">
+              <span style="font-size: 34px; font-weight: 800; letter-spacing: 9px; color: #a78bfa; font-family: monospace;">{otp_code}</span>
+            </div>
+            <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 8px;">
+              &#9203; This code is valid for <strong>10 minutes</strong>.
+            </p>
+            <p style="font-size: 12px; color: #64748b; line-height: 1.5; margin-bottom: 24px;">
+              Security Notice: Never share this OTP with anyone. If you didn't request this verification code, please ignore this email or change your account password.
+            </p>
+            <div style="border-top: 1px solid #1e293b; padding-top: 18px; font-size: 11px; color: #475569; text-align: center;">
+              &copy; 2026 Resume Analyzer &bull; AI Powered Resume & ATS Optimization
+            </div>
+          </div>
+        </body>
+        </html>
+        """
+
+        msg.attach(MIMEText(text_content, "plain"))
+        msg.attach(MIMEText(html_content, "html"))
+
+        context = ssl.create_default_context()
+        with smtplib.SMTP(server_host, server_port, timeout=15) as server:
+            if use_tls:
+                server.starttls(context=context)
+            server.login(smtp_user, smtp_pass)
+            refused = server.sendmail(smtp_user, recipient_email, msg.as_string())
+
+            if refused:
+                refused_details = refused.get(recipient_email, next(iter(refused.values())))
+                code, resp_text = refused_details if isinstance(refused_details, tuple) and len(refused_details) == 2 else (None, str(refused_details))
+                print(f"[SMTP ERROR] Recipient rejected by server ({recipient_email}): code {code} - {resp_text}")
+                return False, f"Email delivery was rejected for {recipient_email} (code {code})."
+
+        print("[SMTP SUCCESS] Email sent successfully")
+        return True, "Email sent successfully"
+
+    except smtplib.SMTPAuthenticationError as e:
+        print(f"[SMTP ERROR] Authentication failed: {e.smtp_code} - {e.smtp_error}")
+        return False, "Gmail SMTP authentication failed. Please check your Gmail address and 16-character App Password."
+    except smtplib.SMTPRecipientsRefused as e:
+        print(f"[SMTP ERROR] All recipients refused: {e.recipients}")
+        return False, "Recipient email was rejected by the mail server."
+    except smtplib.SMTPSenderRefused as e:
+        print(f"[SMTP ERROR] Sender refused: {e.smtp_code} - {e.smtp_error}")
+        return False, "Sender address was refused by the mail server."
+    except smtplib.SMTPDataError as e:
+        print(f"[SMTP ERROR] SMTP data error: {e.smtp_code} - {e.smtp_error}")
+        return False, f"Mail server data error (code {e.smtp_code})."
+    except smtplib.SMTPConnectError as e:
+        print(f"[SMTP ERROR] Connection error: {e.smtp_code} - {e.smtp_error}")
+        return False, f"Could not connect to SMTP server ({server_host}:{server_port})."
+    except smtplib.SMTPServerDisconnected as e:
+        print(f"[SMTP ERROR] Server disconnected unexpectedly: {e}")
+        return False, "SMTP server disconnected unexpectedly."
+    except smtplib.SMTPHeloError as e:
+        print(f"[SMTP ERROR] Handshake rejected: {e.smtp_code} - {e.smtp_error}")
+        return False, "SMTP handshake rejected."
+    except (TimeoutError, socket.timeout) as e:
+        print(f"[SMTP ERROR] Connection timed out: {e}")
+        return False, "Connection to SMTP server timed out. Please check your network."
+    except smtplib.SMTPException as e:
+        print(f"[SMTP ERROR] SMTP exception: {type(e).__name__} - {e}")
+        return False, f"SMTP error: {e}"
+    except Exception as e:
+        print(f"[SMTP ERROR] Unexpected error: {type(e).__name__} - {e}")
+        return False, f"Unexpected error while sending email: {e}"
 
 def get_current_user():
 
@@ -267,6 +532,7 @@ def register():
         return redirect(url_for("dashboard"))
 
     error_message = None
+    success_message = request.args.get("message")
 
     if request.method == "POST":
 
@@ -277,6 +543,8 @@ def register():
 
         if not name or not email or not password:
             error_message = "Please fill all required fields."
+        elif not is_valid_email(email):
+            error_message = "Please enter a valid email address (e.g., name@example.com)."
         elif len(password) < 6:
             error_message = "Password must be at least 6 characters long."
         else:
@@ -290,30 +558,27 @@ def register():
                 if existing:
                     error_message = "An account with this email already exists. Please log in."
                 else:
-                    pwd_hash = generate_password_hash(password)
-                    created_at = datetime.now().strftime("%d %b %Y")
+                    otp = generate_and_save_otp(email, "register")
+                    sent, msg = send_otp_email(email, otp, "register")
 
-                    cursor = conn.execute("""
-                        INSERT INTO users (name, email, password_hash, role, created_at)
-                        VALUES (?, ?, ?, ?, ?)
-                    """, (name, email, pwd_hash, role, created_at))
+                    if not sent:
+                        error_message = f"Failed to send verification email: {msg}"
+                    else:
+                        pwd_hash = generate_password_hash(password)
+                        session["pending_auth"] = {
+                            "purpose": "register",
+                            "name": name,
+                            "email": email,
+                            "role": role,
+                            "password_hash": pwd_hash
+                        }
+                        return redirect(url_for("verify_otp", message=f"A 6-digit verification code has been sent to {email}. Please enter it below to complete registration."))
 
-                    new_user_id = cursor.lastrowid
-
-                    # Assign previous orphan records if any
-                    conn.execute(
-                        "UPDATE resume_history SET user_id = ? WHERE user_id IS NULL",
-                        (new_user_id,)
-                    )
-
-                    session["user_id"] = new_user_id
-                    session["user_name"] = name
-                    session["user_email"] = email
-                    session["user_role"] = role
-
-                    return redirect(url_for("dashboard"))
-
-    return render_template("register.html", error_message=error_message)
+    return render_template(
+        "register.html",
+        error_message=error_message,
+        success_message=success_message
+    )
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -324,14 +589,18 @@ def login():
 
     error_message = None
     success_message = request.args.get("message")
+    info_message = request.args.get("info")
 
     if request.method == "POST":
 
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
+        login_type = request.form.get("login_type", "password_otp")
 
-        if not email or not password:
-            error_message = "Please enter both email and password."
+        if not email:
+            error_message = "Please enter your email address."
+        elif not is_valid_email(email):
+            error_message = "Please enter a valid email address (e.g., name@example.com)."
         else:
             with sqlite3.connect(DATABASE) as conn:
                 conn.row_factory = sqlite3.Row
@@ -340,28 +609,282 @@ def login():
                     (email,)
                 ).fetchone()
 
-            if user and check_password_hash(user["password_hash"], password):
-                session["user_id"] = user["id"]
-                session["user_name"] = user["name"]
-                session["user_email"] = user["email"]
-                session["user_role"] = user["role"]
-
-                # Assign any orphan history records to this user
-                with sqlite3.connect(DATABASE) as conn:
-                    conn.execute(
-                        "UPDATE resume_history SET user_id = ? WHERE user_id IS NULL",
-                        (user["id"],)
-                    )
-
-                return redirect(url_for("dashboard"))
+            if not user:
+                error_message = "No account found with this email. Please check your email or register."
             else:
-                error_message = "Invalid email or password. Please try again."
+                if login_type == "password_otp":
+                    if not password:
+                        error_message = "Please enter your password."
+                    elif not check_password_hash(user["password_hash"], password):
+                        error_message = "Invalid password. Please try again or use Forgot Password."
+
+                if not error_message:
+                    # Credentials verified, send real 2FA OTP to registered email
+                    otp = generate_and_save_otp(email, "login")
+                    sent, msg = send_otp_email(email, otp, "login")
+
+                    if not sent:
+                        error_message = f"Failed to send login verification code: {msg}"
+                    else:
+                        session["pending_auth"] = {
+                            "purpose": "login",
+                            "user_id": user["id"],
+                            "name": user["name"],
+                            "email": user["email"],
+                            "role": user["role"]
+                        }
+                        return redirect(url_for("verify_otp", message=f"Verification code sent to {email}. Enter the 6-digit OTP to continue."))
 
     return render_template(
         "login.html",
         error_message=error_message,
+        success_message=success_message,
+        info_message=info_message
+    )
+
+
+@app.route("/login-otp", methods=["POST"])
+def login_with_otp_request():
+
+    if "user_id" in session and get_current_user():
+        return redirect(url_for("dashboard"))
+
+    email = request.form.get("email", "").strip().lower()
+
+    if not email:
+        return render_template("login.html", error_message="Please enter your email address.")
+
+    if not is_valid_email(email):
+        return render_template("login.html", error_message="Please enter a valid email address.", email=email)
+
+    with sqlite3.connect(DATABASE) as conn:
+        conn.row_factory = sqlite3.Row
+        user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+
+    if not user:
+        return render_template("login.html", error_message="No account found with this email. Please check your email or register.", email=email)
+
+    otp = generate_and_save_otp(email, "login")
+    sent, msg = send_otp_email(email, otp, "login")
+
+    if not sent:
+        return render_template("login.html", error_message=f"Failed to send OTP code: {msg}", email=email)
+
+    session["pending_auth"] = {
+        "purpose": "login",
+        "user_id": user["id"],
+        "name": user["name"],
+        "email": user["email"],
+        "role": user["role"]
+    }
+
+    return redirect(url_for("verify_otp", message=f"A 6-digit login verification code has been sent to {email}."))
+
+
+@app.route("/verify-otp", methods=["GET", "POST"])
+def verify_otp():
+
+    pending = session.get("pending_auth")
+    if not pending or not pending.get("email"):
+        return redirect(url_for("login"))
+
+    email = pending["email"]
+    purpose = pending.get("purpose", "login")
+    masked = mask_email(email)
+
+    error_message = request.args.get("error")
+    success_message = request.args.get("message")
+
+    if request.method == "POST":
+        entered_otp = request.form.get("otp", "").strip()
+
+        is_valid, err_msg = verify_otp_code(email, purpose, entered_otp)
+        if not is_valid:
+            error_message = err_msg
+        else:
+            if purpose == "register":
+                created_at = datetime.now().strftime("%d %b %Y")
+                with sqlite3.connect(DATABASE) as conn:
+                    cursor = conn.execute("""
+                        INSERT INTO users (name, email, password_hash, role, created_at)
+                        VALUES (?, ?, ?, ?, ?)
+                    """, (
+                        pending["name"],
+                        pending["email"],
+                        pending["password_hash"],
+                        pending.get("role", "Student"),
+                        created_at
+                    ))
+                    new_user_id = cursor.lastrowid
+                    conn.execute(
+                        "UPDATE resume_history SET user_id = ? WHERE user_id IS NULL",
+                        (new_user_id,)
+                    )
+
+                session["user_id"] = new_user_id
+                session["user_name"] = pending["name"]
+                session["user_email"] = pending["email"]
+                session["user_role"] = pending.get("role", "Student")
+
+            elif purpose == "login":
+                user_id = pending["user_id"]
+                with sqlite3.connect(DATABASE) as conn:
+                    conn.execute(
+                        "UPDATE resume_history SET user_id = ? WHERE user_id IS NULL",
+                        (user_id,)
+                    )
+
+                session["user_id"] = user_id
+                session["user_name"] = pending["name"]
+                session["user_email"] = pending["email"]
+                session["user_role"] = pending["role"]
+
+            session.pop("pending_auth", None)
+            return redirect(url_for("dashboard"))
+
+    return render_template(
+        "verify_otp.html",
+        masked_email=masked,
+        email=email,
+        purpose=purpose,
+        error_message=error_message,
         success_message=success_message
     )
+
+
+@app.route("/resend-otp", methods=["POST"])
+def resend_otp():
+
+    pending = session.get("pending_auth")
+    if not pending or not pending.get("email"):
+        return redirect(url_for("login"))
+
+    email = pending["email"]
+    purpose = pending.get("purpose", "login")
+
+    otp = generate_and_save_otp(email, purpose)
+    sent, msg = send_otp_email(email, otp, purpose)
+
+    if not sent:
+        return redirect(url_for("verify_otp", error=f"Failed to resend code: {msg}"))
+
+    return redirect(url_for("verify_otp", message="A fresh 6-digit verification code has been sent to your email."))
+
+
+@app.route("/cancel-auth")
+def cancel_auth():
+
+    session.pop("pending_auth", None)
+    return redirect(url_for("login"))
+
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+
+    if "user_id" in session and get_current_user():
+        return redirect(url_for("dashboard"))
+
+    error_message = None
+    success_message = request.args.get("message")
+
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+
+        if not email:
+            error_message = "Please enter your registered email address."
+        elif not is_valid_email(email):
+            error_message = "Please enter a valid email address (e.g., name@example.com)."
+        else:
+            with sqlite3.connect(DATABASE) as conn:
+                conn.row_factory = sqlite3.Row
+                user = conn.execute(
+                    "SELECT * FROM users WHERE email = ?",
+                    (email,)
+                ).fetchone()
+
+            if not user:
+                error_message = "No account found with this email. Please check your email or create a new account."
+            else:
+                otp = generate_and_save_otp(email, "reset_password")
+                sent, msg = send_otp_email(email, otp, "reset_password")
+
+                if not sent:
+                    error_message = f"Failed to send reset code: {msg}"
+                else:
+                    session["pending_reset_email"] = email
+                    return redirect(url_for("reset_password", message="Password reset code has been sent to your registered email."))
+
+    return render_template(
+        "forgot_password.html",
+        error_message=error_message,
+        success_message=success_message
+    )
+
+
+@app.route("/reset-password", methods=["GET", "POST"])
+def reset_password():
+
+    email = session.get("pending_reset_email")
+    if not email:
+        return redirect(url_for("forgot_password"))
+
+    masked = mask_email(email)
+    error_message = request.args.get("error")
+    success_message = request.args.get("message")
+
+    if request.method == "POST":
+        otp = request.form.get("otp", "").strip()
+        new_pwd = request.form.get("new_password", "")
+        confirm_pwd = request.form.get("confirm_password", "")
+
+        if not otp or not new_pwd or not confirm_pwd:
+            error_message = "Please fill all required fields."
+        elif len(new_pwd) < 6:
+            error_message = "New password must be at least 6 characters long."
+        elif new_pwd != confirm_pwd:
+            error_message = "New password and Confirm password do not match."
+        else:
+            is_valid, err_msg = verify_otp_code(email, "reset_password", otp)
+            if not is_valid:
+                error_message = err_msg
+            else:
+                new_hash = generate_password_hash(new_pwd)
+                with sqlite3.connect(DATABASE) as conn:
+                    conn.execute(
+                        "UPDATE users SET password_hash = ? WHERE email = ?",
+                        (new_hash, email)
+                    )
+
+                session.pop("pending_reset_email", None)
+
+                return redirect(url_for(
+                    "login",
+                    message="Password reset successfully! You can now log in with your new password."
+                ))
+
+    return render_template(
+        "reset_password.html",
+        masked_email=masked,
+        email=email,
+        error_message=error_message,
+        success_message=success_message
+    )
+
+
+@app.route("/resend-reset-otp", methods=["POST"])
+def resend_reset_otp():
+
+    email = session.get("pending_reset_email")
+    if not email:
+        return redirect(url_for("forgot_password"))
+
+    otp = generate_and_save_otp(email, "reset_password")
+    sent, msg = send_otp_email(email, otp, "reset_password")
+
+    if not sent:
+        return redirect(url_for("reset_password", error=f"Failed to resend reset code: {msg}"))
+
+    return redirect(url_for("reset_password", message="A fresh reset code has been sent to your email."))
 
 
 @app.route("/logout")
